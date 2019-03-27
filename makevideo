@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -e
+
+ext=${2:-png}
+
+filename="${1%.*}"
+inpattern=${3:-frame_%05d}
+
+startframe=`python -c "from glob import glob; from os import path; print(int(path.splitext((sorted(glob('$1/*.$ext'))[0]))[0].split('_')[-1]))"`
+
+ffmpeg -y -start_number $startframe -i "$filename/$inpattern.$ext" -b 15M $1.mp4
+#vlc $1
+
