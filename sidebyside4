@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# examples:
+# >> sidebyside4 3x1 dir1 dir2 dir3 target_dir
+#   - searches image files in dir1, dir2, and dir3, 
+#     sorts the results 
+#     adds a caption (same as directory name)
+#     and places the images next to each other in a new image
+#     the name of the output files will have the form target_dir/frame_%d.png
+
+tmpdirs=""
+tmpfiles=""
+
+geometry=$1
+shift
+
+num_streams=$(expr $# - 1)
+for i in `seq $num_streams`
+do
+        tmpdir=`mktemp -d`
+        srcf=`mktemp`
+        tmpf=`mktemp`
+        # find only image files 
+        # cf. https://stackoverflow.com/questions/16758105/linux-find-list-all-graphic-image-files-with-find
+        find "$1" -type f -exec file {} \; | awk -F: '{if ($2 ~/image/) print $1}' | sort > $srcf
+        n=$(wc -l < $srcf)
+        if [[ $n == 0 ]]; then
+                echo "didn't find any image files in $1 ... skipping"
+                rm $tmpf
+                rm $srcf
+                rmdir $tmpdir
+        else
+                echo "adding $n image files from $1"
+                tmpfiles+=" $tmpf"
+                tmpdirs+=" $tmpdir"
+
+                first=`head -n 1 $srcf`
+                width=`identify -format %w "$first"`
+                parallel \
+                        "convert -background \"#0008\" -fill white -gravity center -size ${width}x30 caption:\"$1\" {} +swap -gravity south -composite $tmpdir/{/}" \
+                        :::: $srcf
+                find $tmpdir -type f | sort > $tmpf
+
+                rm $srcf
+        fi
+
+        shift
+done
+
+dest=$1
+
+howmany () { echo $#; }
+num_tmpfiles=`howmany $tmpfiles`
+
+if [ $num_tmpfiles -lt 2 ]; then
+        echo only one stream of files - how do I put a single image side by side?
+        exit 1
+fi
+
+mkdir -p $dest
+
+
+echo "putting images together..."
+
+parallel --xapply \
+        montage -tile $geometry -geometry 100% {} $dest/{1/.}.png \
+        :::: $tmpfiles
+
+for tmp in $tmpfiles; do
+        rm $tmp
+done
+for tmp in $tmpdirs; do
+        echo rm -rf $tmp
+done
+
+#makevideo $dest.mp4
+
