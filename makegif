@@ -1,0 +1,11 @@
+#!/bin/bash
+
+files=${@:1:$#-1}
+target=${!#}
+
+if [[ $target != *.gif ]]; then
+        files=$*
+        target="ani.gif"
+fi
+
+convert -delay 20 $files -loop 0 $target
