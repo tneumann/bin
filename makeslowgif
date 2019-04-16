@@ -8,4 +8,17 @@ if [[ $target != *.gif ]]; then
         target="ani.gif"
 fi
 
+tmpdir=`mktemp -d`
+
+width=`identify -format %w "$1"`
+parallel \
+        "convert -background \"#0008\" -fill white -gravity center -size ${width}x30 caption:\"{/.}\" {} +swap -gravity south -composite $tmpdir/{/}" \
+        ::: $files
+
+cd $tmpdir
 convert -delay 100 $files -loop 0 $target
+cd ~-
+mv $tmpdir/$target .
+rm -rf $tmpdir
+
+echo $target created
