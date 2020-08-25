@@ -1,0 +1,26 @@
+#!/usr/bin/env python
+
+from glob import glob
+from shutil import copy, move
+import plac
+
+@plac.annotations(
+    start_at = ("numbering offset", "positional", None, int),
+    move_files = ("move files instead of copying them", "flag", 'm'),
+)
+def main(filename_glob_pattern, outpattern, start_at=0, move_files=False):
+    files = glob(filename_glob_pattern)
+    files.sort()
+    print "%d files found" % len(files)
+    for i,file in enumerate(files):
+        dest = outpattern % (i + start_at)
+        print "  %s -> %s" % (file, dest)
+        if move_files:
+            move(file, dest)
+        else:
+            copy(file, dest)
+    print "done"
+
+if __name__ == '__main__':
+    plac.call(main)
+
