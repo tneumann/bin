@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -e
+
+dir=`mktemp -d`
+ffmpeg -i $1 $dir/out_%05d.png
+for i in $dir/*.png; do convert -geometry $2 "$i" "$i.gif"; done
+gifsicle --delay=$3 --loop $dir/*.gif > $1.gif
+rm -rf $dir
